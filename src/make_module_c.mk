@@ -61,6 +61,7 @@ $(eval $(compile-rules))
 
 endef
 
+# clean target
 .PHONY: clean
 clean:
 	@echo "remove targets and temp directory"
