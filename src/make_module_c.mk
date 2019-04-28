@@ -16,12 +16,19 @@ source-dir-to-binary-dir = $(addprefix $(TEMP_DIR)/,$1)
 source-to-object = $(call source-dir-to-binary-dir, \
 $(subst .c,$(OBJ_PREFIX),$(filter %.c,$1)))
 
+# variable to store processed object files
+PROC_OBJECTS=
+
 # $(call one-compile-rule, object-file, source-file)
 define one-compile-rule_c
+ifeq (,$(findstring $1,$(PROC_OBJECTS)))
 $1: $2
 	@echo "compile $$<"
 	@$(CC) $(CFLAGS) -M $$< -MF $(subst $(OBJ_PREFIX),.d,$$@) -MP -MT $$@
 	@$(CC) $(CFLAGS) -c $$< -o $$@
+
+PROC_OBJECTS+=$1
+endif
 
 endef
 
