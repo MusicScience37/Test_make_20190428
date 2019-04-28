@@ -54,7 +54,7 @@ define one-exe-rule
 all: $(target)
 
 $(target): $(call source-to-object, $(sources))
-	@echo "link to $$@"
+	@echo "link to build $$@"
 	@$(CC) $(LIBFLAGS) $$^ -o $$@
 
 $(eval $(compile-rules))
