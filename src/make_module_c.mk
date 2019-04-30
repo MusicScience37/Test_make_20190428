@@ -15,10 +15,9 @@ ifndef VERBOSE
     QUIET := @
 endif
 
-# Default target is all.
+# Default target is all
 .PHONY: all
 all:
-
 
 # $(call source-dir-to-temp-dir, directory-list)
 source-dir-to-temp-dir = $(addprefix $(TEMP_DIR)/,$1)
@@ -43,38 +42,43 @@ endef
 # variable to store processed object files
 PROC_OBJECTS=
 
-# $(call one-compile-rule, object-file, source-file)
-define one-compile-rule_c
+# $(call one-compile-rule-c, object-file, source-file)
+# make the compile rule for a source file written in C
+define one-compile-rule-c
     # avoid duplication
     ifeq (,$(findstring $1,$(PROC_OBJECTS)))
+        $(eval DEPEND := $(call source-to-depend, $2))
+
         $1: $2
 	        @echo "- compile $$<"
-	        $(QUIET) $(CC) $(CFLAGS) -M $$< -MF $(call source-to-depend, $2) -MP -MT $$@
+	        $(QUIET) $(CC) $(CFLAGS) -M $$< -MP -MT $$@ -MF $(DEPEND)
 	        $(QUIET) $(CC) $(CFLAGS) -c $$< -o $$@
 
-        -include $(call source-to-depend, $2)
+        -include $(DEPEND)
 
         PROC_OBJECTS+=$1
     endif
 endef
 
 # $(call compile-rules, sources)
+# make compile rules
 define compile-rules
     $(foreach f, $(filter %.c, $1), \
-        $(call one-compile-rule_c,$(call source-to-object,$f),$f))
+        $(call one-compile-rule-c,$(call source-to-object,$f),$f))
 endef
 
 # variable to store all targets to clean all of them
 PROC_TARGETS=
 
 # $(call one-exe-rule, target, sources)
+# make build rules for a executable
 define one-exe-rule
     $(eval TARGET := $(addsuffix $(EXE_SUFFIX), $(addprefix $(BIN_DIR)/, $1)))
 
     all: $(TARGET)
 
     $(TARGET): $(call source-to-object, $2)
-	    @echo "- link to build $1"
+	    @echo "- link to build $(TARGET)"
 	    $(QUIET) $(CC) $(LIBFLAGS) $$^ -o $$@
 
     $(eval $(call prepare-directories, $(call source-dir-to-temp-dir, $(dir $2))))
