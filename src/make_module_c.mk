@@ -32,14 +32,26 @@ endif
 
 endef
 
-# $(compile-rules)
+# $(call compile-rules, sources)
 define compile-rules
-$(foreach f, $(filter %.c, $(sources)), \
+$(foreach f, $(filter %.c, $1), \
 $(call one-compile-rule_c,$(call source-to-object,$f),$f))
 
 ifneq ($(MAKECMDGOALS),clean)
--include $(subst $(OBJ_PREFIX),.d,$(call source-to-object,$(sources)))
+-include $(subst $(OBJ_PREFIX),.d,$(call source-to-object,$1))
 endif
+
+endef
+
+# $(call one-exe-rule, target, sources)
+define one-exe-rule
+all: $1
+
+$1: $(call source-to-object, $2)
+	@echo "link to build $$@"
+	@$(CC) $(LIBFLAGS) $$^ -o $$@
+
+$(eval $(call compile-rules, $2))
 
 endef
 
@@ -51,24 +63,6 @@ endef
 output-directories = $(call source-dir-to-binary-dir,$(source_directories))
 
 $(eval $(foreach f, $(output-directories), $(call prepare-directory,$f)))
-
-#create-temp-directories :=                                                   \
-#    $(shell for f in $(call source-dir-to-binary-dir,$(source_directories)); \
-#        do                                                                   \
-#            $(TEST) -d $$f || $(MKDIR) $$f;                                  \
-#        done)                                                                \
-
-# $(one-exe-rule)
-define one-exe-rule
-all: $(target)
-
-$(target): $(call source-to-object, $(sources))
-	@echo "link to build $$@"
-	@$(CC) $(LIBFLAGS) $$^ -o $$@
-
-$(eval $(compile-rules))
-
-endef
 
 # clean target
 .PHONY: clean

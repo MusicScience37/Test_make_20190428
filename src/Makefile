@@ -7,9 +7,9 @@ include make_module_c.mk
 
 sources = main1.c test.c
 target = $(binary_directory)/main1
-$(eval $(one-exe-rule))
+$(eval $(call one-exe-rule, $(target), $(sources)))
 
 sources = main2.c test.c
 target = $(binary_directory)/main2
-$(eval $(one-exe-rule))
+$(eval $(call one-exe-rule, $(target), $(sources)))
 
