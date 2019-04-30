@@ -43,11 +43,20 @@ endif
 
 endef
 
-create-temp-directories :=                                                   \
-	$(shell for f in $(call source-dir-to-binary-dir,$(source_directories)); \
-		do                                                                   \
-			$(TEST) -d $$f || $(MKDIR) $$f;                                  \
-		done)                                                                \
+# $(eval $(call prepare-directory, path))
+define prepare-directory
+temp-prepare-directory := $(shell $(TEST) -d $1 || $(MKDIR) $1)
+endef
+
+output-directories = $(call source-dir-to-binary-dir,$(source_directories))
+
+$(eval $(foreach f, $(output-directories), $(call prepare-directory,$f)))
+
+#create-temp-directories :=                                                   \
+#    $(shell for f in $(call source-dir-to-binary-dir,$(source_directories)); \
+#        do                                                                   \
+#            $(TEST) -d $$f || $(MKDIR) $$f;                                  \
+#        done)                                                                \
 
 # $(one-exe-rule)
 define one-exe-rule
