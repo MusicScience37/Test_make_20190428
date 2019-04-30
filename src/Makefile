@@ -1,15 +1,13 @@
 
 CFLAGS := -Wall
-source_directories := ./
-binary_directory := ../bin
 
 include make_module_c.mk
 
-sources = main1.c test.c
-target = $(binary_directory)/main1
+sources := main1.c test/test.c
+target := main1
 $(eval $(call one-exe-rule, $(target), $(sources)))
 
-sources = main2.c test.c
-target = $(binary_directory)/main2
+sources := main2.c test/test.c
+target := main2
 $(eval $(call one-exe-rule, $(target), $(sources)))
 

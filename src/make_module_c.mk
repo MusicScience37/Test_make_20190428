@@ -1,73 +1,94 @@
+# suffix
+OBJ_SUFFIX ?= .o
+EXE_SUFFIX ?=
 
-OBJ_EXTENSION := .o
-TEST := test
-MKDIR := mkdir -p
+# commands
+TEST ?= test
+MKDIR ?= mkdir -p
 
-TEMP_DIR := ../temp
+# output directories
+TEMP_DIR ?= ../temp
+BIN_DIR ?= ../bin
+
+# if VERBOSE variable is set, show commands
+ifndef VERBOSE
+    QUIET := @
+endif
 
 # Default target is all.
 .PHONY: all
 all:
 
-# $(call source-dir-to-binary-dir, directory-list)
-source-dir-to-binary-dir = $(addprefix $(TEMP_DIR)/,$1)
+
+# $(call source-dir-to-temp-dir, directory-list)
+source-dir-to-temp-dir = $(addprefix $(TEMP_DIR)/,$1)
 
 # $(call source-to-object, source-file-list)
-source-to-object = $(call source-dir-to-binary-dir, \
-$(subst .c,$(OBJ_EXTENSION),$(filter %.c,$1)))
+source-to-object = $(call source-dir-to-temp-dir, \
+    $(subst .c,$(OBJ_SUFFIX),$(filter %.c,$1)))
+
+# $(call source-to-depend, source-file-list)
+source-to-depend = $(call source-dir-to-temp-dir, \
+    $(subst .c,.d,$(filter %.c,$1)))
+
+# $(eval $(call prepare-directories, directory-list))
+# prepare output directories (if not cleaning)
+define prepare-directories
+    ifneq ($(MAKECMDGOALS),clean)
+        $(foreach f, $1, \
+            $(eval TEMP_PREPARE_DIRECTORY := $(shell $(TEST) -d $f || $(MKDIR) $f)))
+    endif
+endef
 
 # variable to store processed object files
 PROC_OBJECTS=
 
 # $(call one-compile-rule, object-file, source-file)
 define one-compile-rule_c
-ifeq (,$(findstring $1,$(PROC_OBJECTS)))
-$1: $2
-	@echo "compile $$<"
-	@$(CC) $(CFLAGS) -M $$< -MF $(subst $(OBJ_EXTENSION),.d,$$@) -MP -MT $$@
-	@$(CC) $(CFLAGS) -c $$< -o $$@
+    # avoid duplication
+    ifeq (,$(findstring $1,$(PROC_OBJECTS)))
+        $1: $2
+	        @echo "- compile $$<"
+	        $(QUIET) $(CC) $(CFLAGS) -M $$< -MF $(call source-to-depend, $2) -MP -MT $$@
+	        $(QUIET) $(CC) $(CFLAGS) -c $$< -o $$@
 
-PROC_OBJECTS+=$1
-endif
+        -include $(call source-to-depend, $2)
 
+        PROC_OBJECTS+=$1
+    endif
 endef
 
 # $(call compile-rules, sources)
 define compile-rules
-$(foreach f, $(filter %.c, $1), \
-$(call one-compile-rule_c,$(call source-to-object,$f),$f))
-
-ifneq ($(MAKECMDGOALS),clean)
--include $(subst $(OBJ_EXTENSION),.d,$(call source-to-object,$1))
-endif
-
+    $(foreach f, $(filter %.c, $1), \
+        $(call one-compile-rule_c,$(call source-to-object,$f),$f))
 endef
+
+# variable to store all targets to clean all of them
+PROC_TARGETS=
 
 # $(call one-exe-rule, target, sources)
 define one-exe-rule
-all: $1
+    $(eval TARGET := $(addsuffix $(EXE_SUFFIX), $(addprefix $(BIN_DIR)/, $1)))
 
-$1: $(call source-to-object, $2)
-	@echo "link to build $$@"
-	@$(CC) $(LIBFLAGS) $$^ -o $$@
+    all: $(TARGET)
 
-$(eval $(call compile-rules, $2))
+    $(TARGET): $(call source-to-object, $2)
+	    @echo "- link to build $1"
+	    $(QUIET) $(CC) $(LIBFLAGS) $$^ -o $$@
+
+    $(eval $(call prepare-directories, $(call source-dir-to-temp-dir, $(dir $2))))
+    $(eval $(call prepare-directories, $(addprefix $(BIN_DIR)/, $(dir $1))))
+
+    $(eval $(call compile-rules, $2))
+
+    PROC_TARGETS += $(TARGET)
 
 endef
-
-# $(eval $(call prepare-directory, path))
-define prepare-directory
-temp-prepare-directory := $(shell $(TEST) -d $1 || $(MKDIR) $1)
-endef
-
-output-directories = $(call source-dir-to-binary-dir,$(source_directories))
-
-$(eval $(foreach f, $(output-directories), $(call prepare-directory,$f)))
 
 # clean target
 .PHONY: clean
 clean:
-	@echo "remove targets and temp directory"
-	@$(RM) -r $(TEMP_DIR)
-	@$(RM) $(target)
+	@echo "- remove output directories"
+	$(QUIET) $(RM) -r $(TEMP_DIR) $(BIN_DIR)
 
