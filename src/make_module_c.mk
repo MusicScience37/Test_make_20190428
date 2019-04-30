@@ -1,5 +1,5 @@
 
-OBJ_PREFIX := .o
+OBJ_EXTENSION := .o
 TEST := test
 MKDIR := mkdir -p
 
@@ -14,7 +14,7 @@ source-dir-to-binary-dir = $(addprefix $(TEMP_DIR)/,$1)
 
 # $(call source-to-object, source-file-list)
 source-to-object = $(call source-dir-to-binary-dir, \
-$(subst .c,$(OBJ_PREFIX),$(filter %.c,$1)))
+$(subst .c,$(OBJ_EXTENSION),$(filter %.c,$1)))
 
 # variable to store processed object files
 PROC_OBJECTS=
@@ -24,7 +24,7 @@ define one-compile-rule_c
 ifeq (,$(findstring $1,$(PROC_OBJECTS)))
 $1: $2
 	@echo "compile $$<"
-	@$(CC) $(CFLAGS) -M $$< -MF $(subst $(OBJ_PREFIX),.d,$$@) -MP -MT $$@
+	@$(CC) $(CFLAGS) -M $$< -MF $(subst $(OBJ_EXTENSION),.d,$$@) -MP -MT $$@
 	@$(CC) $(CFLAGS) -c $$< -o $$@
 
 PROC_OBJECTS+=$1
@@ -38,7 +38,7 @@ $(foreach f, $(filter %.c, $1), \
 $(call one-compile-rule_c,$(call source-to-object,$f),$f))
 
 ifneq ($(MAKECMDGOALS),clean)
--include $(subst $(OBJ_PREFIX),.d,$(call source-to-object,$1))
+-include $(subst $(OBJ_EXTENSION),.d,$(call source-to-object,$1))
 endif
 
 endef
